@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Image Puzzle with Reference</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #788e9b;
+      text-align: center;
+      margin: 0; padding: 0;
+    }
+    #gameContainer {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 30px;
+      margin-top: 20px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #reference {
+      border: 2px dashed #aaa;
+      padding: 10px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      width: 266px; /* half width of puzzle */
+    }
+    #reference img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    #puzzle {
+      width: 532px;
+      height: 575px;
+      display: flex;
+      flex-wrap: wrap;
+      border: 2px solid #333;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .tile {
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      background-repeat: no-repeat;
+      cursor: grab;
+      transition: box-shadow 0.3s ease;
+    }
+    .tile:hover {
+      box-shadow: 0 0 10px #555;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    button, select {
+      font-size: 16px;
+      padding: 8px 15px;
+      margin: 0 5px;
+    }
+    #moves {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧩 Puzzle Game with Reference Image</h2>
+
+  <div id="controls">
+    <label for="level">Difficulty:</label>
+    <select id="level">
+      <option value="easy">Easy (3x3)</option>
+      <option value="medium">Medium (4x4)</option>
+      <option value="hard">Hard (5x5)</option>
+    </select>
+    <button onclick="startGame()">Start Puzzle</button>
+  </div>
+
+  <div id="gameContainer">
+    <div id="reference">
+      <h3>Reference</h3>
+      <img id="referenceImage" src="images/mickey.jpg" alt="Reference Image" />
+    </div>
+
+    <div>
+      <div id="puzzle"></div>
+      <div id="moves">Moves: 0</div>
+    </div>
+  </div>
+
+<script>
+  const puzzle = document.getElementById('puzzle');
+  const movesText = document.getElementById('moves');
+  const levelSelect = document.getElementById('level');
+  const referenceImage = document.getElementById('referenceImage');
+
+  const levelMap = {
+    easy: { size: 3, image: 'images/mickey.jpg' },
+    medium: { size: 4, image: 'images/donald.jpg' },
+    hard: { size: 5, image: 'images/goofy.jpg' }
+  };
+
+  let grid, imgSrc;
+  let tiles = [], moves = 0;
+
+  function startGame() {
+    const selected = levelSelect.value;
+    grid = levelMap[selected].size;
+    imgSrc = levelMap[selected].image;
+    referenceImage.src = imgSrc;
+
+    createTiles();
+    shuffleTiles();
+    moves = 0;
+    updateMoves();
+  }
+
+  function createTiles() {
+    puzzle.innerHTML = '';
+    tiles = [];
+
+    const tileW = 532 / grid;
+    const tileH = 575 / grid;
+
+    puzzle.style.width = '532px';
+    puzzle.style.height = '575px';
+
+    for (let i = 0; i < grid * grid; i++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.dataset.index = i;
+
+      const x = (i % grid) * tileW;
+      const y = Math.floor(i / grid) * tileH;
+
+      tile.style.width = `${tileW}px`;
+      tile.style.height = `${tileH}px`;
+      tile.style.backgroundImage = `url('${imgSrc}')`;
+      tile.style.backgroundSize = `532px 575px`;
+      tile.style.backgroundPosition = `-${x}px -${y}px`;
+
+      tile.draggable = true;
+      tile.addEventListener('dragstart', handleDragStart);
+      tile.addEventListener('dragover', handleDragOver);
+      tile.addEventListener('drop', handleDrop);
+
+      tiles.push(tile);
+      puzzle.appendChild(tile);
+    }
+  }
+
+  function shuffleTiles() {
+    tiles.sort(() => Math.random() - 0.5);
+    puzzle.innerHTML = '';
+    tiles.forEach(tile => puzzle.appendChild(tile));
+  }
+
+  function updateMoves() {
+    movesText.textContent = `Moves: ${moves}`;
+  }
+
+  function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', Array.from(puzzle.children).indexOf(e.target));
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const toIndex = Array.from(puzzle.children).indexOf(e.target);
+
+    if (fromIndex === toIndex) return;
+
+    const tilesArray = Array.from(puzzle.children);
+    const fromTile = tilesArray[fromIndex];
+    const toTile = tilesArray[toIndex];
+
+    if (fromIndex < toIndex) {
+      puzzle.insertBefore(toTile, fromTile);
+      puzzle.insertBefore(fromTile, puzzle.children[toIndex]);
+    } else {
+      puzzle.insertBefore(fromTile, toTile);
+      puzzle.insertBefore(toTile, puzzle.children[fromIndex]);
+    }
+
+    moves++;
+    updateMoves();
+
+    if (isSolved()) {
+      setTimeout(() => alert(`🎉 Puzzle Solved in ${moves} moves!`), 300);
+    }
+  }
+
+  function isSolved() {
+    return Array.from(puzzle.children).every((tile, index) => {
+      return parseInt(tile.dataset.index) === index;
+    });
+  }
+
+  window.onload = startGame;
+</script>
+
+</body>
+</html>
